@@ -1,7 +1,9 @@
 import boto3
 
+# Connect to DynamoDB
 dynamodb = boto3.resource('dynamodb')
 
+# Define schema, attributes and throughput of new table
 table = dynamodb.create_table(
     TableName='music',
     KeySchema=[
@@ -30,7 +32,8 @@ table = dynamodb.create_table(
     }
 )
 
+# Wait until table exists within DB, print msg when ready
 table.meta.client.get_waiter('table_exists').wait(TableName='music')
-print(f"Table 'music' is ready.")
+print("Table 'music' is ready.")
 
 
