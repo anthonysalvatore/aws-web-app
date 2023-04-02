@@ -2,23 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Registration</title>
 </head>
 <body>
     {% for message in get_flashed_messages() %}
         <p>{{ message }}</p>
     {% endfor %}
     
-    <form action="{{ url_for('login') }}" method="POST">
+    <form action="{{ url_for('register') }}" method="POST">
         <label for="email">Email:</label>
         <input type="email" name="email" required><br>
         
+        <label for="username">Username:</label>
+        <input type="username" name="username" required><br>
+
         <label for="password">Password:</label>
         <input type="password" name="password" required><br>
         
-        <button type="submit">Login</button>
+        <button type="submit">Register</button>
     </form>
-
-    <p><a href="{{ url_for('register')}}">Register</a></p>
 </body>
 </html>
