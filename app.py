@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import boto3
+from boto3.dynamodb.conditions import Key
 import os
 
 app = Flask(__name__)
@@ -7,6 +8,11 @@ app.secret_key = os.urandom(24)
 
 dynamodb = boto3.resource('dynamodb')
 login_table = dynamodb.Table('login')
+subscriptions_table = dynamodb.Table('subscriptions')
+
+def query_table(key, condition, table):
+    response = table.query(KeyConditionExpression=Key(key).eq(condition))
+    return response['Items']
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -46,15 +52,16 @@ def register():
 
     return render_template('register.html')
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def main_page():
     if 'email' not in session:
         return redirect(url_for('login'))
     
     user_name = session['user_name']
 
-    return render_template('main.html', user_name=user_name)
+    subscriptions = query_table('email', session['email'], subscriptions_table)
 
+    return render_template('main.html', user_name=user_name, subscriptions=subscriptions)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)

@@ -18,6 +18,6 @@ with open('aws-web-app/a1.json', 'r') as json_file:
 for item in data['songs']:
     img_url = item['img_url']
     response = requests.get(img_url)
-    s3.upload_fileobj(BytesIO(response.content), bucket_name, f"images/{item['artist']}.jpg")
+    s3.upload_fileobj(BytesIO(response.content), bucket_name, f"{item['artist']}.jpg", ExtraArgs={'ContentType': 'image/jpeg'})
 
 print("Artist images have been uploaded to S3.")
