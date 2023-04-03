@@ -41,16 +41,27 @@ def register():
 
         new_user = {'email': email, 'user_name': username, 'password': password}
 
-        respone = login_table.get_item(Key={'email': email})
+        response = login_table.get_item(Key={'email': email})
 
-        if 'Item' in response and response['Item']['password'] == password:
+        if 'Item' in response and response['Item']['email'] == email:
             # Email already exists in DB, direct to retry
             flash('The email already exists')
         else:
             login_table.put_item(Item=new_user)
-            redirect(url_for('login'))
+            return redirect(url_for('login'))
 
     return render_template('register.html')
+
+#@app.route('/remove_subscription')
+#def remove_subscription():
+#    pass
+
+@app.route('/logout')
+def logout():
+    session.pop('email', None)
+    session.pop('userame', None)
+    
+    return redirect(url_for('login'))
 
 @app.route('/', methods=['GET', 'POST'])
 def main_page():
@@ -58,6 +69,10 @@ def main_page():
         return redirect(url_for('login'))
     
     user_name = session['user_name']
+
+    if request.method == 'POST':
+        title = request.form['subscription_title']
+        response = subscriptions_table.delete_item(Key={'email': session['email'], 'title': title})
 
     subscriptions = query_table('email', session['email'], subscriptions_table)
 

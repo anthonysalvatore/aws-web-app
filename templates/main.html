@@ -6,14 +6,34 @@
 </head>
 <body>
     <h1>Welcome, {{user_name}}</h1>
-    {% for subscription in subscriptions %}
     <div class="subscription">
-        <h3>{{ subscription.title }}</h3>
-        <p>Artist: {{ subscription.artist }}</p>
-        <p>Year: {{ subscription.year }}</p>
-        <img src="{{ subscription.img_url }}" alt="{{ subscription.artist }}"/>
-       
+        <table border=1>
+            <tr>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Year</th>
+                <th>Artist Image</th>
+            </tr>
+            {% for subscription in subscriptions %}
+                <tr>
+                    <td>{{ subscription.title }}</td>
+                    <td>{{ subscription.artist }}</td>
+                    <td>{{ subscription.year }}</td>
+                    <td><img src="{{ subscription.img_url }}" alt="{{ subscription.artist }}"/></td>
+                    <td>
+                        <form action="{{ url_for('main_page') }}" method="post">
+                            <input type="hidden" name="subscription_title" value="{{ subscription.title }}">
+                            <button type="submit">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
     </div>
-    {% endfor %}
+
+    <div>
+        <p><a href="{{ url_for('logout')}}">Logout</a></p>
+    </div>
+    
 </body>
 </html>
