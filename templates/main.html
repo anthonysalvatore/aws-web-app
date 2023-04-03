@@ -6,13 +6,16 @@
 </head>
 <body>
     <h1>Welcome, {{user_name}}</h1>
+    
     <div class="subscription">
+        <h2>Subscriptions</h2>
         <table border=1>
             <tr>
                 <th>Title</th>
                 <th>Artist</th>
                 <th>Year</th>
                 <th>Artist Image</th>
+                <th>Action</th>
             </tr>
             {% for subscription in subscriptions %}
                 <tr>
@@ -21,7 +24,7 @@
                     <td>{{ subscription.year }}</td>
                     <td><img src="{{ subscription.img_url }}" alt="{{ subscription.artist }}"/></td>
                     <td>
-                        <form action="{{ url_for('main_page') }}" method="post">
+                        <form action="{{ url_for('remove_subscription') }}" method="post">
                             <input type="hidden" name="subscription_title" value="{{ subscription.title }}">
                             <button type="submit">Remove</button>
                         </form>
@@ -29,6 +32,52 @@
                 </tr>
             {% endfor %}
         </table>
+
+        <div class="query">
+            <h2>Query</h2>
+            {% for message in get_flashed_messages() %}
+                <p>{{ message }}</p>
+            {% endfor %}
+            <form action="{{ url_for('search') }}" method="POST">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title"><br>
+                <label for="artist">Artist:</label>
+                <input type="text" id="artist" name="artist"><br>
+                <label for="year">Year:</label>
+                <input type="number" id="year" name="year" min="1900" max="{{ current_year }}"><br>
+                <input type="submit" value="Search">
+            </form>
+            
+            {% if query %}
+            <table border=1>
+                <tr>
+                    <th>Title</th>
+                    <th>Artist</th>
+                    <th>Year</th>
+                    <th>Artist Image</th>
+                    <th>Action</th>
+                </tr>
+                {% for q in query %}
+                    <tr>
+                        <td>{{ q.title }}</td>
+                        <td>{{ q.artist }}</td>
+                        <td>{{ q.year }}</td>
+                        {% set img_url = 'https://s3920301-music.s3.amazonaws.com/' + q.artist + '.jpg' %}
+                        <td><img src="{{ img_url }}" alt="{{ q.artist }}"/></td>
+                        <td>
+                            <form action="{{ url_for('add_subscription') }}" method="post">
+                                <input type="hidden" name="add_title" value="{{ q.title }}">
+                                <input type="hidden" name="add_artist" value="{{ q.artist }}">
+                                <input type="hidden" name="add_year" value="{{ q.year }}">
+                                <input type="hidden" name="add_url" value="{{ img_url }}">
+                                <button type="submit">Subscribe</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+            {% endif %}
+        </div>
     </div>
 
     <div>
