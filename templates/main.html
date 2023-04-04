@@ -9,6 +9,8 @@
     
     <div class="subscription">
         <h2>Subscriptions</h2>
+
+        {% if subscriptions %}
         <table border=1>
             <tr>
                 <th>Title</th>
@@ -30,8 +32,12 @@
                         </form>
                     </td>
                 </tr>
+            
             {% endfor %}
         </table>
+        {% else %}
+        <p>Not currently subscribed to any music.</p>
+        {% endif %}
 
         <div class="query">
             <h2>Query</h2>

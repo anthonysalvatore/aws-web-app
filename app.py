@@ -1,50 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-import boto3
-from boto3.dynamodb.conditions import Key
+import requests
 import os
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-dynamodb = boto3.resource('dynamodb')
-login_table = dynamodb.Table('login')
-music_table = dynamodb.Table('music')
-subscriptions_table = dynamodb.Table('subscriptions')
-
-def query_table(key, condition, table):
-    response = table.query(KeyConditionExpression=Key(key).eq(condition))
-    return response['Items']
-
-def search_music(title, year, artist):
-    # Define the filter expression and attribute values
-    filter_expression = []
-    expression_attribute_values = {}
-    expression_attribute_names = {}
-
-    if title:
-        filter_expression.append('title = :title')
-        expression_attribute_values[':title'] = title
-
-    if year:
-        filter_expression.append('#yr = :year')
-        expression_attribute_values[':year'] = year
-        expression_attribute_names['#yr'] = 'year'
-
-    if artist:
-        filter_expression.append('artist = :artist')
-        expression_attribute_values[':artist'] = artist
-
-
-    # Join the filter expressions with AND
-    filter_expression = ' AND '.join(filter_expression)
-
-    # Perform the scan operation (was failing if year was empty; quick fix)
-    if year:
-        response = music_table.scan(FilterExpression=filter_expression, ExpressionAttributeValues=expression_attribute_values, ExpressionAttributeNames=expression_attribute_names)
-    else:
-        response = music_table.scan(FilterExpression=filter_expression, ExpressionAttributeValues=expression_attribute_values)
-
-    return response['Items']
+api_url = 'https://btki7ax6b3.execute-api.us-east-1.amazonaws.com/beta/app-actions'
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -55,13 +16,18 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+
+        data = {
+            'action': "get_user",
+            'email': email
+        }
+        response = requests.post(api_url, json=data)
+        response_data = response.json()['body']
         
-        response = login_table.get_item(Key={'email': email})
-        
-        if 'Item' in response and response['Item']['password'] == password:
+        if 'Item' in response_data and response_data['Item']['password'] == password:
             # User is logged in successfully, redirect to the main page, store session info
             session['email'] = email
-            session['user_name'] = response['Item']['user_name']
+            session['user_name'] = response_data['Item']['user_name']
             return redirect(url_for('main_page'))
         else:
             flash('Email or password is invalid')
@@ -75,16 +41,22 @@ def register():
         username = request.form['username']
         password = request.form['password']
 
-        new_user = {'email': email, 'user_name': username, 'password': password}
+        new_user = {'action': 'create_user', 'email': email, 'user_name': username, 'password': password}
 
-        response = login_table.get_item(Key={'email': email})
+        data = {
+            'action': "get_user",
+            'email': email
+        }
+        response = requests.post(api_url, json=data)
+        response_data = response.json()['body']
 
-        if 'Item' in response and response['Item']['email'] == email:
+        if 'Item' in response_data and response_data['Item']['email'] == email:
             # Email already exists in DB, direct to retry
             flash('The email already exists')
         else:
-            login_table.put_item(Item=new_user)
+            response = requests.post(api_url, json=new_user)
             return redirect(url_for('login'))
+
 
     return render_template('register.html')
 
@@ -95,7 +67,13 @@ def remove_subscription():
         return redirect(url_for('login'))
 
     title = request.form['subscription_title']
-    response = subscriptions_table.delete_item(Key={'email': session['email'], 'title': title})
+
+    data = {
+        'action': "delete_subscription",
+        'email': session['email'],
+        'title': title
+    }
+    requests.post(api_url, json=data)
     return redirect(url_for('main_page'))
 
 @app.route('/add_subscription', methods=['POST'])
@@ -109,8 +87,8 @@ def add_subscription():
     year = request.form['add_year']
     img_url = request.form['add_url']
 
-    new_subscription = {'email': session['email'], 'title': title, 'artist': artist, 'year': year, 'img_url': img_url}
-    response = subscriptions_table.put_item(Item=new_subscription)
+    new_subscription = {'action':"create_subscription", 'email': session['email'], 'title': title, 'artist': artist, 'year': year, 'img_url': img_url}
+    response = requests.post(api_url,json=new_subscription)
     return redirect(url_for('main_page'))
 
 @app.route('/search', methods=['POST'])
@@ -126,13 +104,19 @@ def search():
         flash('No result is retrieved. Please query again.')
         return redirect(url_for('main_page'))
 
-    results = search_music(title, year, artist)
+    data = {'action': "search_music",}
+    if title: data['title'] = title
+    if artist: data['artist'] = artist
+    if year: data['year'] = year
 
-    if not results:
+    response = requests.post(api_url, json=data)
+    response_data = response.json()['body']
+
+    if not response_data['Items']:
         flash('No result is retrieved. Please query again.')
         return redirect(url_for('main_page'))
 
-    session['query']=results
+    session['query']=response_data['Items']
 
     return redirect(url_for('main_page'))
 
@@ -154,7 +138,13 @@ def main_page():
     user_name = session['user_name']     
     query = session.get('query',[])
 
-    subscriptions = query_table('email', session['email'], subscriptions_table)
+    data = {
+        'action': "get_subscriptions",
+        'email': session['email']
+    }
+    response = requests.post(api_url, json=data)
+    response_data = response.json()['body']
+    subscriptions = response_data['Items']
 
     return render_template('main.html', user_name=user_name, subscriptions=subscriptions, query=query)
 
