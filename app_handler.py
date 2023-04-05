@@ -10,6 +10,7 @@ subscriptions_table = dynamodb.Table('subscriptions')
 
 def lambda_handler(event, context):
     action = event['action']
+    # Call appropriate function based on the action
     if action == 'create_user':
         return create_user(event)
     elif action == 'get_user':
@@ -25,6 +26,7 @@ def lambda_handler(event, context):
     else:
         return {'statusCode': 400, 'body': 'Invalid action'}
 
+# Create a new user
 def create_user(event):
     response = login_table.put_item(
         Item={
@@ -35,6 +37,7 @@ def create_user(event):
     )
     return {'statusCode': 200, 'body': 'User created'}
 
+# Get user information
 def get_user(event):
     response = login_table.get_item(
         Key={
@@ -43,6 +46,7 @@ def get_user(event):
     )
     return {'statusCode': 200, 'body': response}
 
+# Create a new subscription
 def create_subscription(event):
     response = subscriptions_table.put_item(
         Item={
@@ -55,6 +59,7 @@ def create_subscription(event):
     )
     return {'statusCode': 200, 'body': 'Subscription created'}
 
+# Delete a subscription
 def delete_subscription(event):
     response = subscriptions_table.delete_item(
         Key={
@@ -64,10 +69,12 @@ def delete_subscription(event):
     )
     return {'statusCode': 200, 'body': 'Subscription deleted'}
 
+# Get all subscriptions for a user
 def get_subscriptions(event):
     response = subscriptions_table.query(KeyConditionExpression=Key('email').eq(event['email']))
     return {'statusCode': 200, 'body': response}
 
+# Search music based on title, artist, and year
 def search_music(event):
     # Define the filter expression and attribute values
     filter_expression = []
@@ -86,7 +93,6 @@ def search_music(event):
     if 'artist' in event:
         filter_expression.append('artist = :artist')
         expression_attribute_values[':artist'] = event['artist']
-
 
     # Join the filter expressions with AND
     filter_expression = ' AND '.join(filter_expression)
